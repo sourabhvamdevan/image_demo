@@ -10,7 +10,9 @@ import '../models/overlay_item.dart';
 import '../widgets/overlay_widget.dart';
 
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({super.key});
+  final VoidCallback onToggleTheme;
+
+  const EditorScreen({super.key, required this.onToggleTheme});
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -23,11 +25,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
   OverlayItem? _selectedItem;
   File? _backgroundImage;
-
   int _idCounter = 0;
-  bool _isDark = false;
 
-  //image picker
   Future<void> _pickBackgroundImage() async {
     final picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -43,7 +42,7 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
-  //for overlays
+  //this is for overlays
   void _addLogo() {
     setState(() {
       _items.add(
@@ -105,7 +104,7 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  //this will export to galary
+  //yeh export ke liye
   Future<void> _exportToGallery() async {
     final ctx = _canvasKey.currentContext;
     if (ctx == null) return;
@@ -145,13 +144,15 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget build(BuildContext context) {
     _items.sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Overlay Editor'),
         actions: [
           IconButton(
-            icon: Icon(_isDark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => setState(() => _isDark = !_isDark),
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: widget.onToggleTheme,
           ),
           IconButton(
             icon: const Icon(Icons.photo_library),
@@ -168,68 +169,63 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ],
       ),
-      body: Theme(
-        data: _isDark
-            ? Theme.of(context).copyWith(brightness: Brightness.dark)
-            : Theme.of(context).copyWith(brightness: Brightness.light),
-        child: Column(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedItem = null),
-                child: Center(
-                  child: RepaintBoundary(
-                    key: _canvasKey,
-                    child: Stack(
-                      children: [
-                        _backgroundImage != null
-                            ? Image.file(_backgroundImage!)
-                            : const SizedBox(
-                                width: 300,
-                                height: 300,
-                                child: Center(
-                                  child: Text(
-                                    'Pick an image',
-                                    style: TextStyle(fontSize: 18),
-                                  ),
+      body: Column(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedItem = null),
+              child: Center(
+                child: RepaintBoundary(
+                  key: _canvasKey,
+                  child: Stack(
+                    children: [
+                      _backgroundImage != null
+                          ? Image.file(_backgroundImage!)
+                          : const SizedBox(
+                              width: 300,
+                              height: 300,
+                              child: Center(
+                                child: Text(
+                                  'Pick an image',
+                                  style: TextStyle(fontSize: 18),
                                 ),
                               ),
-                        ..._items.map(
-                          (item) => OverlayWidget(
-                            item: item,
-                            isSelected: item == _selectedItem,
-                            onTap: () {
-                              setState(() {
-                                _selectedItem = item;
-                                item.zIndex = _items.length;
-                              });
-                            },
-                            onEditText: () => _editTextDialog(item),
-                          ),
+                            ),
+                      ..._items.map(
+                        (item) => OverlayWidget(
+                          item: item,
+                          isSelected: item == _selectedItem,
+                          onTap: () {
+                            setState(() {
+                              _selectedItem = item;
+                              item.zIndex = _items.length;
+                            });
+                          },
+                          onEditText: () => _editTextDialog(item),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: _addLogo,
-                  child: const Text('Add Logo'),
-                ),
-                ElevatedButton(
-                  onPressed: _addText,
-                  child: const Text('Add Text'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: _addLogo,
+                child: const Text('Add Logo'),
+              ),
+              ElevatedButton(
+                onPressed: _addText,
+                child: const Text('Add Text'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
       ),
     );
   }
