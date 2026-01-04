@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:gallery_saver/gallery_saver.dart';
 
 import '../models/overlay_item.dart';
 import '../widgets/overlay_widget.dart';
@@ -28,7 +27,7 @@ class _EditorScreenState extends State<EditorScreen> {
   int _idCounter = 0;
   bool _isDark = false;
 
-  // ---------- IMAGE PICKER ----------
+  //image picker
   Future<void> _pickBackgroundImage() async {
     final picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -44,7 +43,7 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
-  // ---------- OVERLAYS ----------
+  //for overlays
   void _addLogo() {
     setState(() {
       _items.add(
@@ -106,12 +105,12 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  // ---------- EXPORT & SAVE TO GALLERY ----------
+  //this will export to galary
   Future<void> _exportToGallery() async {
-    final context = _canvasKey.currentContext;
-    if (context == null) return;
+    final ctx = _canvasKey.currentContext;
+    if (ctx == null) return;
 
-    final renderObject = context.findRenderObject();
+    final renderObject = ctx.findRenderObject();
     if (renderObject == null || renderObject is! RenderRepaintBoundary) return;
 
     final image = await renderObject.toImage(pixelRatio: 3.0);
@@ -119,18 +118,26 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (byteData == null) return;
 
-    final tempDir = await getTemporaryDirectory();
+    final bytes = byteData.buffer.asUint8List();
+
+    final directory = await getExternalStorageDirectory();
+    if (directory == null) return;
+
+    final picturesDir = Directory('${directory.path}/Pictures/OverlayEditor');
+
+    if (!picturesDir.existsSync()) {
+      picturesDir.createSync(recursive: true);
+    }
+
     final file = File(
-      '${tempDir.path}/overlay_${DateTime.now().millisecondsSinceEpoch}.png',
+      '${picturesDir.path}/overlay_${DateTime.now().millisecondsSinceEpoch}.png',
     );
 
-    await file.writeAsBytes(byteData.buffer.asUint8List());
-
-    await GallerySaver.saveImage(file.path, albumName: 'OverlayEditor');
+    await file.writeAsBytes(bytes);
 
     if (!mounted) return;
     ScaffoldMessenger.of(
-      context,
+      ctx,
     ).showSnackBar(const SnackBar(content: Text('Saved to Gallery')));
   }
 
